@@ -1,4 +1,4 @@
-# 2-kupl:mapping-free variation detection from DNA-seq data of matched samples
+# 2-kupl: mapping-free variation detection from DNA-seq data of matched samples
 
 ## Schematic view of the pipeline
 ![schematic](workflow.png)
@@ -22,6 +22,7 @@ Gene functions are frequently changed by somatic variations, including mutations
 ## Basic usage
 ```
 USAGE
+
     python3 pipeline.py --m1 mutant_r1.fq.gz --m2 mutant_r2.fq.gz --w1 wild_r1.fq.gz --w2 wild_r2.fq.gz -o output
     MANDATORY PARAMETERS:
     --m1 mutant1    The compressed fq format file of mutant type library
