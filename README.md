@@ -78,7 +78,7 @@ USAGE
 |-- control_jf.sh
 |-- merged_contigs
 |   |-- contigs.fa
-|   |-- contigs.gz
+|   |-- merged_contigs.gz
 `-- variant_result
     |-- SNV_alignments.txt
     |-- SNV_alignments.vcf
@@ -86,7 +86,20 @@ USAGE
     `-- variant_report.txt
 ```
 
+The following table describes the output files produced by 2-kupl :
 
+FileName | Description
+---------|------------
+`merged_contigs.gz` | Contains assembled contigs from `case specific kmers (cs-kmers)`.
+`contigs_pairedspkmers` | Contains assembled contigs in which more than half of `cs_kmers` are matched.
+`contigs_unpaired` | Contains assembled contigs in which fewer than half of `cs_kmers` are matched.
+`SNV_alignments.txt` | The pairwise alignment between mutant contig and putative reference.
+`SNV_alignments.vcf` | The VCF format output containing mutant contig, putative reference, cs_count, coverage, allele frequency and Phred scores.
+`SNV_alignments_ref.vcf` | The genomic coordinates are added if the `genome reference` is provided by users.
+`variant_report.txt` | A summary report of all variant.
+
+*Notes* :
+cs_kmers: case specific kmers; ct_kmers: The counterpart kmers matched with cs_kmers with Hamming Distance of one; cs_count: average kmer count of all cs_kmers in the same contig; coverage: estimated from the average counts of ct_kmers in the same contig; Phred scores: computed with the following formula `-10log(Pvalue)` where Pvalue is calculated using the fisher exact test.
 
 
 
