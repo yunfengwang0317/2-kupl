@@ -23,9 +23,7 @@ Gene functions are frequently changed by somatic variations, including mutations
 
 Users can manually download the scripts or use the command line as follows.
 
-    ```
-    git clone https://github.com/yunfengwang0317/2-kupl.git
-    ```
+`git clone https://github.com/yunfengwang0317/2-kupl.git`
     
 Make sure you run 2-kupl within the script folder.
     
