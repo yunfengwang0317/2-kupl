@@ -19,11 +19,21 @@ Gene functions are frequently changed by somatic variations, including mutations
 - **[CAP3](https://anaconda.org/bioconda/cap3)** CAP3: A DNA Sequence Assembly Program
 - **[BBDUK](https://jgi.doe.gov/data-and-tools/bbtools/bb-tools-user-guide/bbduk-guide/)** BBDuk was developed to combine most common data-quality-related trimming, filtering, and masking operations into a single high-performance tool. 
 
+## Installation
+
+Users can manually download the scripts or use the command line as follows.
+
+    ```
+    git clone https://github.com/yunfengwang0317/2-kupl.git
+    ```
+    Make sure you run 2-kupl within the script folder.
+    
 ## Basic usage
 ```
 USAGE
 
     python3 pipeline.py --m1 mutant_r1.fq.gz --m2 mutant_r2.fq.gz --w1 wild_r1.fq.gz --w2 wild_r2.fq.gz -o output
+    
     MANDATORY PARAMETERS:
     --m1 mutant1    The compressed fq format file of mutant type library
 
