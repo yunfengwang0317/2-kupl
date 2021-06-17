@@ -14,6 +14,9 @@ Gene functions are frequently changed by somatic variations, including mutations
 - **[numpy](https://www.numpy.org/)** NumPy is the fundamental package for scientific computing with Python. 
 - **[pandas](https://www.pandas.org/)** Pandas is a python library that allows you to easily manipulate data to analyze. 
 - **[biopython](https://biopython.org/)** Biopython is a set of freely available tools for biological computation written in Python by an international team of developers.
+- **[tqdm](https://pypi.org/project/tqdm/)** tqdm is a Fast, Extensible Progress Meter.
+- **[scipy](https://pypi.org/search/?q=scipy)** SciPy is open-source software for mathematics, science, and engineering.
+- **[pydna](https://pypi.org/project/pydna/)** The pydna python package provide a human-readable formal descriptions of dna assembly strategies in Python.
 - **[jellyfish](https://anaconda.org/conda-forge/jellyfish)** Jellyfish is a tool for fast, memory-efficient counting of k-mers in DNA
 - **[cutadapt](https://anaconda.org/bioconda/cutadapt)** Cutadapt helps with these trimming tasks by finding the adapter or primer sequences in an error-tolerant way. 
 - **[GSNAP](https://anaconda.org/compbiocore/gsnap)** GSNAP: A tool for aligning RNA-Seq and DNA-Seq datasets to genomes
