@@ -15,6 +15,7 @@ Gene functions are frequently changed by somatic variations, including mutations
 - **[pandas](https://www.pandas.org/)** Pandas is a python library that allows you to easily manipulate data to analyze. 
 - **[biopython](https://biopython.org/)** Biopython is a set of freely available tools for biological computation written in Python by an international team of developers.
 - **[jellyfish](https://anaconda.org/conda-forge/jellyfish)** Jellyfish is a tool for fast, memory-efficient counting of k-mers in DNA
+- **[cutadapt](https://anaconda.org/bioconda/cutadapt)** Cutadapt helps with these trimming tasks by finding the adapter or primer sequences in an error-tolerant way. 
 - **[GSNAP](https://anaconda.org/compbiocore/gsnap)** GSNAP: A tool for aligning RNA-Seq and DNA-Seq datasets to genomes
 - **[CAP3](https://anaconda.org/bioconda/cap3)** CAP3: A DNA Sequence Assembly Program
 - **[BBDUK](https://jgi.doe.gov/data-and-tools/bbtools/bb-tools-user-guide/bbduk-guide/)** BBDuk was developed to combine most common data-quality-related trimming, filtering, and masking operations into a single high-performance tool. 
