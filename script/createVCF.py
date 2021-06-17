@@ -13,6 +13,7 @@ SNVFILE=sys.argv[1]
 cutoff=float(sys.argv[2])
 lowdepth=int(sys.argv[3])
 threads=int(sys.argv[4])
+genome=sys.argv[5]
 
 MUTREF,INFERED_REF,CONTIG,POS,REF,ALT,FILTER,Case,Control,INFO=[],[],[],[],[],[],[],[],[],[]
 def extractrefandalt(refseq,contig):#this part of coding is not elegant.
@@ -207,6 +208,8 @@ def removeFP(vcf):
     ext_kmers_nonZero=ext_kmers_nonZero[ext_kmers_nonZero[1]>0]
     ext_kmers_nonZero=ext_kmers_nonZero[0].tolist()+ext_kmers_nonZero[0].apply(lambda x:str(Seq(x).reverse_complement())).tolist()
     FP=[]
+    cs_count_N=vcf.CONTROL.apply(lambda x:int(x.split(':')[1].split(',')[0]))
+    vcf.loc[cs_count_N>0,'FILTER']='FAIL'
     for i in range(vcf.shape[0]):
         contig,pos=vcf.iloc[i,0],vcf.iloc[i,1]
         if len(contig)>60:continue 
@@ -247,13 +250,16 @@ if __name__ == '__main__':
     print (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),'INFO finished')
     df=pd.read_csv(output_VCF,header=None,index_col=None,sep='\t',skiprows=range(11))
     df.columns=['#CHROM','POS','ID','REF','ALT','QUAL','FILTER','INFO','FORMAT','CASE','CONTROL','INFERED_REF','MAF_CASE','case_cov']
-    del df['MAF_CASE'], df['case_cov']
+    sp=df.CASE.apply(lambda x:int(x.split(':')[1].split(',')[0]))
+    df['sp']=sp
+    df=df.sort_values('sp',ascending=False)
+    del df['MAF_CASE'], df['case_cov'], df['sp']
     df=removeFP(df)
     with open(output_VCF,'w')as vcf:
         vcf.write(header)
-    df.to_csv(output_VCF,mode='a',header=True,index=False,sep='\t')
+    df[df.FILTER=='PASS'].to_csv(output_VCF,mode='a',header=True,index=False,sep='\t')
     print ('%d of %d records are predicted to be false positive'%(df[df.FILTER=='FAIL'].shape[0],df.shape[0]))
-
+    df[df.FILTER=='FAIL'].to_csv('%s/Not_convincing_contigs.vcf'%os.path.dirname(SNVFILE),sep='\t',header=True,index=False)
 
 
 if sys.argv[5]!='None':
@@ -272,7 +278,11 @@ if sys.argv[5]!='None':
     map2ref=align2genome(df)
     print (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),'mapping finished')
     combineddf=map2ref
-    combineddf=combineddf.sort_values(['#CHROM','POS'],ascending=True)
+    sp=combineddf.CASE.apply(lambda x:int(x.split(':')[1].split(',')[0]))
+    combineddf['sp']=sp
+    combineddf=combineddf.sort_values('sp',ascending=False)
+    del combineddf['sp']
+    #combineddf=combineddf.sort_values(['#CHROM','POS'],ascending=True)
     combineddf[combineddf.FILTER=='PASS'].to_csv(output_VCF,sep='\t',mode='a',index=False)
     combineddf.loc[combineddf.FILTER=='FAIL',].to_csv('%s/Not_convincing_contigs.vcf'%os.path.dirname(SNVFILE),sep='\t',header=True,index=False)
-os.system('rm %s/contigs.fa %s/blat_result.txt %s/SNV_results.txt %s/x*snv'%(os.path.dirname(SNVFILE),os.path.dirname(SNVFILE),os.path.dirname(SNVFILE),os.path.dirname(SNVFILE)))
+os.system('rm %s/contigs.fa %s/blat_result.txt %s/SNV_results.txt %s/x*'%(os.path.dirname(SNVFILE),os.path.dirname(SNVFILE),os.path.dirname(SNVFILE),os.path.dirname(SNVFILE)))

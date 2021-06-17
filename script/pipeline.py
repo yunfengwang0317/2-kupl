@@ -1,6 +1,6 @@
 #/bin/bash
 from Bio import SeqIO
-import gzip,sys,os,subprocess,time
+import gzip,sys,os,subprocess,time,platform
 import pandas as pd
 import numpy as np
 import itertools
@@ -98,13 +98,11 @@ elif rawmutant2=='':
     SINGLE=True
 
 def trimLBQ(fq1,fq2):
-    if os.path.exists(outdir)is False:os.system('mkdir %s'%outdir)
     if os.path.exists(outdir+'/'+fq1.split('/')[-1]) and os.path.getsize(outdir+'/'+fq1.split('/')[-1])>50000000 or os.path.exists(outdir+'/variant_result/SNV_alignments.vcf'):return True
     subprocess.call(r'''cutadapt --cores=0 -q 10,10 -m 31 --pair-filter=any -o %s/%s -p %s/%s %s %s'''%(outdir,fq1.split('/')[-1],outdir,fq2.split('/')[-1],fq1,fq2),shell=True)
 
 def OverrideN(fqfile):
-    if os.path.exists(outdir)is False:os.system('mkdir %s'%outdir)
-    if int(os.popen('ls %s/*fa.gz|wc -c'%outdir).readline().strip())>0 or os.path.exists(outdir+'/variant_result/SNV_alignments.vcf'):return True
+    if os.path.exists(outdir+'/'+fqfile.split('/')[-1]) or os.path.exists(outdir+'/variant_result/SNV_alignments.vcf'):return True
     fi=NamedTemporaryFile(delete=True)
     seed=fi.name.split('/')[-1]
     export=[]
@@ -128,13 +126,12 @@ def generate_kmers():
     if os.path.isfile(fpath) and os.path.getsize(fpath) > 1000:return True
     os.system('mkdir -p %s/case_specific_kmers'%outdir)
     jfdir=os.popen('which jellyfish').readline().strip()
-    jfdir='jellyfish'
     if PAIRED:
         controlsh="%s count -m 31 -s 100000 -t 10 -o %s/case_specific_kmers/%s.jf -F 2 -C <(gunzip -c %s) <(gunzip -c %s)\n%s dump -c %s/case_specific_kmers/%s.jf | sort -k 1 -S 3000M --parallel 10|pigz -p 10 -c > %s/case_specific_kmers/%s.txt.gz\n"%(jfdir,outdir,controlname,wild1,wild2,jfdir,outdir,controlname,outdir,controlname)
         casesh="%s count -m 31 -s 100000 -t 10 -o %s/case_specific_kmers/%s.jf -F 2 -C -L %s <(gunzip -c %s) <(gunzip -c %s)\n%s dump -c %s/case_specific_kmers/%s.jf | sort -k 1 -S 3000M --parallel 10|pigz -p 10 -c > %s/case_specific_kmers/%s.txt.gz\n"%(jfdir,outdir,casename,support,mutant1,mutant2,jfdir,outdir,casename,outdir,casename)
     elif SINGLE:
         controlsh="%s count -m 31 -s 100000 -t 10 -o %s/case_specific_kmers/%s.jf -F 2 -C <(gunzip -c %s)\n%s dump -c %s/case_specific_kmers/%s.jf | sort -k 1 -S 3000M --parallel 10|pigz -p 10 -c > %s/case_specific_kmers/%s.txt.gz\n"%(jfdir,outdir,controlname,wild1,jfdir,outdir,controlname,outdir,controlname)
-        casesh="%s count -L 5 -m 31 -s 100000 -t 10 -o %s/case_specific_kmers/%s.jf -F 2 -C -L %s <(gunzip -c %s)\n%s dump -c %s/case_specific_kmers/%s.jf | sort -k 1 -S 3000M --parallel 10|pigz -p 10 -c > %s/case_specific_kmers/%s.txt.gz\n"%(jfdir,outdir,casename,support,mutant1,jfdir,outdir,casename,outdir,casename)
+        casesh="%s count -L 5 -m 31 -s 100000 -t 10 -o %s/case_specific_kmers/%s.jf -F 2 -C -L %s <(gunzip -c %s)\n%s dump -c %s/case_specific_kmers/%s.jf | sort -k 1 -S 3000M  --parallel 10|pigz -p 10 -c > %s/case_specific_kmers/%s.txt.gz\n"%(jfdir,outdir,casename,support,mutant1,jfdir,outdir,casename,outdir,casename)
     o1=open(outdir+'/control_jf.sh','w')
     o2=open(outdir+'/case_jf.sh','w')
     o1.write(controlsh)
@@ -166,7 +163,7 @@ def compressfile(samid):
     if os.path.exists('%s/fa.gz'%outdir+'/'+samid):return True
     os.system('cat %s/x*%s.fa|gzip > %s.fa.gz;rm %s/x*%s*'%(outdir,samid,outdir+'/'+samid,outdir,samid))
 if __name__ =='__main__':
-    os.system('rm -r %s/variant_result'%outdir)
+    os.system('rm -r %s/variant_result;mkdir %s'%(outdir,outdir))
     if rmLQB=='cutadapt':
         [wild1,wild2,mutant1,mutant2]=[outdir+'/'+i.split('/')[-1] for i in [rawwild1,rawwild2,rawmutant1,rawmutant2]]
         pool=Pool(4)
@@ -177,8 +174,17 @@ if __name__ =='__main__':
         [wild1,wild2,mutant1,mutant2]=[outdir+'/'+i.split('/')[-1].replace('fq.gz','fa.gz').replace('fastq.gz','fa.gz') for i in [rawwild1,rawwild2,rawmutant1,rawmutant2]]
         for fi in [rawwild1,rawwild2,rawmutant1,rawmutant2]:
             samid=fi.split('/')[-1].replace('.fq.gz','').replace('.fastq.gz','')
-            if int(os.popen('ls %s/*fa.gz|wc -c'%outdir).readline().strip())>0:continue
-            subprocess.call(r'''split -l %s -d --additional-suffix=%s <(zcat %s);mv x*%s %s'''%(20000000,samid,fi,samid,outdir),executable='/bin/bash',shell=True)
+            if len([i for i in os.listdir(outdir) if i.endswith('fa.gz')])>0:continue
+            if platform.system()=='Linux':subprocess.call(r'''split -l %s -d --additional-suffix=%s <(zcat %s);mv x*%s %s'''%(2000000,samid,fi,samid,outdir),executable='/bin/bash',shell=True)
+            elif platform.system()=='Darwin':
+                subprocess.call(r'''split -l %s <(gunzip -c %s)'''%(2000000,fi),executable='/bin/bash',shell=True)
+                for xf in os.popen('ls ./x*').readlines():
+                    os.system("mv %s %s"%(xf.strip(),xf.strip()+samid))
+                os.system("mv x*%s %s"%(samid,outdir))
+            else:
+                print ('2kupl needs to run on either linux of macos')
+                os._exit(0)
+
             fileidxs=[i.strip() for i in os.popen('ls %s/x*%s'%(outdir,samid)).readlines()]
             pool=Pool(int(threads))
             pool.map(OverrideN, fileidxs)

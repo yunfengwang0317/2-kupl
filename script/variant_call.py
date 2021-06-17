@@ -1,4 +1,4 @@
-import os,sys,time,subprocess,re,gzip
+import os,sys,time,subprocess,re,gzip,platform
 from math import ceil
 from tqdm import *
 import pandas as pd
@@ -14,7 +14,14 @@ from Bio.Seq import Seq
 from collections import defaultdict
 from functools import partial
 from multiprocessing import Process,Pool,Manager,Value
-from fsplit.filesplit import FileSplit
+#from fsplit.filesplit import FileSplit
+
+if platform.system()=='Linux':compress='zcat'
+elif platform.system()=='Darwin':compress='gunzip -c'
+else:
+    print ('2kupl runs on either Linux or Macos')
+    os._exit(0)
+
 def dist(s1,s2,start=0):
     if len(s1)!=len(s2):raise ValueError('undefined for sequences of unequal length')
     hd=0
@@ -49,6 +56,7 @@ def createindex(lock,fi):
     lock.release()
     idx_head.clear()
     idx_tail.clear()
+
 def pairkmers(idx_head,idx_tail): 
     subpair_T,subpair_N=[],[]
     for key in tqdm(idx_head.keys()):
@@ -275,14 +283,16 @@ def shrink():
     contigs.to_csv('%s/merged_contigs/contigs_allspkmers'%outdir,header=True,index=False,sep='\t')
 
 def comm(param):
+    threads,kmerfile_T,kmerfile_N,wild1,wild2,lowdepth,cutoff,support,nb_kmers,distance=sys.argv[1:]
+    threads,lowdepth,cutoff,support,nb_kmers,distance=int(threads),int(lowdepth),float(cutoff),int(support),int(nb_kmers),int(distance)
+    samid=kmerfile_T.split('/')[-1].replace('.txt.gz','')
+    outdir=os.path.dirname(os.path.dirname(kmerfile_T))
     if param=='12':
-        #print (r'''comm -12 <(zcat %s|awk '{if($2>%s){print $1}}') <(zcat %s |awk '{if($2>%s){print $1}}') > %s/case_specific_kmers/shared_kmers'''%(kmerfile_T,support,kmerfile_N,support,outdir))
-        subprocess.call(r'''comm -12 <(zcat %s|awk '{if($2>%s){print $1}}') <(zcat %s |awk '{if($2>%s){print $1}}') > %s/case_specific_kmers/shared_kmers'''%(kmerfile_T,support,kmerfile_N,support,outdir),shell=True,executable='/bin/bash')
+        subprocess.call(r'''comm -12 <(%s %s|awk '{if($2>%s){print $1}}') <(%s %s |awk '{if($2>%s){print $1}}') > %s/case_specific_kmers/shared_kmers'''%(compress,kmerfile_T,support,compress,kmerfile_N,support,outdir),shell=True,executable='/bin/bash')
     elif param=='23':
-        #print (r'''comm -23 <(zcat %s|awk '{if($2>%s){print $1}}') <(zcat %s |awk '{if($2>0){print $1}}') > %s/case_specific_kmers/specific_kmer'''%(kmerfile_T,support,kmerfile_N,outdir))
-        subprocess.call(r'''comm -23 <(zcat %s|awk '{if($2>%s){print $1}}') <(zcat %s |awk '{if($2>0){print $1}}') > %s/case_specific_kmers/specific_kmer'''%(kmerfile_T,support,kmerfile_N,outdir),shell=True,executable='/bin/bash')
+        subprocess.call(r'''comm -23 <(%s %s|awk '{if($2>%s){print $1}}') <(%s %s |awk '{if($2>0){print $1}}') > %s/case_specific_kmers/specific_kmer'''%(compress,kmerfile_T,support,compress,kmerfile_N,outdir),shell=True,executable='/bin/bash')
     elif param=='homo':
-        subprocess.call(r'''zcat %s|awk '{if($2>%s){print $1}}' > %s/case_specific_kmers/shared_kmers'''%(kmerfile_N,lowdepth,outdir),shell=True,executable='/bin/bash')#adaptable to homo variant
+        subprocess.call(r'''%s %s|awk '{if($2>%s){print $1}}' > %s/case_specific_kmers/shared_kmers'''%(compress,kmerfile_N,lowdepth,outdir),shell=True,executable='/bin/bash')#adaptable to homo variant
 
 def Cal_sp_cov(contigs):
     col1,col2=[],[]
@@ -331,10 +341,11 @@ if __name__ == '__main__':
     threads,lowdepth,cutoff,support,nb_kmers,distance=int(threads),int(lowdepth),float(cutoff),int(support),int(nb_kmers),int(distance)
     samid=kmerfile_T.split('/')[-1].replace('.txt.gz','')
     outdir=os.path.dirname(os.path.dirname(kmerfile_T))
+    #os.system('cd mergeTags;make')
     ################# extract case specific kmers #######################
     nb_kmers_eachthread=10000000
     fpath='%s/case_specific_kmers/shared_kmers_count'%outdir
-    if os.path.exists(fpath) is False and os.path.exists('%s/variant_result/SNV_alignments.vcf'%outdir) is False:
+    if os.path.exists('%s/variant_result/SNV_alignments.vcf'%outdir) is False:
         print (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),'extract specific kmers')
         pool=Pool(2)
         pool.map(comm,['23','homo'])# homo mode for calling homozygote and 12 mode for somatic
@@ -342,6 +353,7 @@ if __name__ == '__main__':
         pool.join()
         if int(os.popen('wc -l %s/case_specific_kmers/specific_kmer'%outdir).readline().strip().split()[0])>50000000:os._exit(0)
         os.system("echo 'tag\tpvalue' > %s/case_specific_kmers/specific_kmer_fix"%outdir)
+        print("./mergeTags -k 31 -m 25 -n %s/case_specific_kmers/specific_kmer_fix 2>/dev/null|awk '{if($1>%s){print $0}}'|gzip -c > %s/merged_contigs/contigs.gz;gunzip -c %s/merged_contigs/contigs.gz > %s/merged_contigs/contigs_allspkmers"%(outdir,nb_kmers,outdir,outdir,outdir))
         subprocess.call(r"""awk '{print $1"\t0"}' %s/case_specific_kmers/specific_kmer >> %s/case_specific_kmers/specific_kmer_fix"""%(outdir,outdir),shell=True)
         subprocess.call(r"./mergeTags -k 31 -m 25 -n %s/case_specific_kmers/specific_kmer_fix 2>/dev/null|awk '{if($1>%s){print $0}}'|gzip -c > %s/merged_contigs/contigs.gz;gunzip -c %s/merged_contigs/contigs.gz > %s/merged_contigs/contigs_allspkmers"%(outdir,nb_kmers,outdir,outdir,outdir),shell=True)
         subprocess.call(r"""less %s/case_specific_kmers/shared_kmers|awk '{print ">kmer"NR"\n"$1}' > %s/case_specific_kmers/shared_kmers.fa"""%(outdir,outdir),shell=True)
@@ -349,8 +361,12 @@ if __name__ == '__main__':
     #shrink the contigs_allspkmers and remove useless kmers from the specific_kmer_fix
     if os.path.exists('%s/contig_pair/contigs_pairedspkmers'%outdir) is False:
         shrink()
-        #print ("""rm %s/x*_N;split -l %s -d --additional-suffix=%s_N %s/case_specific_kmers/shared_kmers_count;mv x*%s_N %s"""%(outdir,min(10000000,nb_kmers_eachthread),samid,outdir,samid,outdir))
-        os.system("""rm %s/x*_N;split -l %s -d --additional-suffix=%s_N %s/case_specific_kmers/shared_kmers_count;mv x*%s_N %s"""%(outdir,min(10000000,nb_kmers_eachthread),samid,outdir,samid,outdir))
+        if platform.system()=='Linux':
+            os.system("""rm %s/x*_N;split -l %s -d --additional-suffix=%s_N %s/case_specific_kmers/shared_kmers_count;mv x*%s_N %s"""%(outdir,min(10000000,nb_kmers_eachthread),samid,outdir,samid,outdir))
+        else:
+            os.system("""rm %s/x*_N;split -l %s %s/case_specific_kmers/shared_kmers_count"""%(outdir,min(10000000,nb_kmers_eachthread),outdir))
+            for xf in os.popen('ls ./x*').readlines():
+                os.system("mv %s %s"%(xf.strip(),outdir+'/'+xf.strip()+samid+'_N'))
         fileidxs=[i.strip() for i in os.popen('ls %s/x*%s_N'%(outdir,samid)).readlines()]
         print (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),'indexing and pairing kmers')
         with open('%s/case_specific_kmers/specific_kmer_fix'%outdir)as f:
@@ -460,7 +476,7 @@ if __name__ == '__main__':
         nb_contigs_eachthread=ceil(int(os.popen('wc -l %s/contig_unpair/contigs_unpaired'%outdir).readline().strip().split()[0])/threads)
         print (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),'%s/%s unpaired contigs are dumped to bbduk'%(int(os.popen('wc -l %s/contig_unpair/contigs_unpaired'%outdir).readline().strip().split()[0])-1,contig_unpair.shape[0]))
         #retriev reads from fastq
-        os.system("./bbduk.sh in=%s in2=%s ref=%s k=31 mm=f rcomp=t outm=%s fastawrap=500 rename=t hdist=%s speed=0 2>/dev/null"%(wild1,wild2,'%s/contig_unpair/passedcontig.fa'%outdir,'%s/contig_unpair/unpair_contigs_reads.fa'%outdir,distance))
+        os.system("bbduk.sh in=%s in2=%s ref=%s k=31 mm=f rcomp=t outm=%s fastawrap=500 rename=t hdist=%s speed=0 2>/dev/null"%(wild1,wild2,'%s/contig_unpair/passedcontig.fa'%outdir,'%s/contig_unpair/unpair_contigs_reads.fa'%outdir,distance))
         cor_reads='%s/contig_unpair/unpair_contigs_reads.fa'%outdir
         try:nb_weird_contig=int(os.popen('wc -l %s/contig_unpair/FailedToInferRef.txt'%outdir).readline().strip().split()[0])
         except:nb_weird_contig=0
