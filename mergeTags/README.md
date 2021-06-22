@@ -1,0 +1,5 @@
+# DE-kupl mergeTags
+
+DE-kupl mergeTags is part of the DE-kupl package, and is a DE k-mers assembly procedure.
+
+DE k-mers are assembled de novo in order to group k-mers that potentially overlap the same event (ie. all k-mer overlapping a new differential splice junction or SNV). To this aim, we developed our own procedure called “mergeTags”, which works as follows: first we try to merge k-mers having non-ambiguous k-1 prefix-suffix overlap. For example, given the set of k-mers : {ATG,TGA,TGC,CAT}, the following contigs are produced : contigs = {CATG, TGA, TGC}. We repeat this assembly step using assembled k-mers until no overlap is found. We then repeat the assembly process with $k-2$ prefix-suffix overlaps, using as input the assemblies produced at the previous step, and so forth. Finally, a set of DE contigs is produced and each contig is labelled by the assembled k-mer having the lowest p-value. This assembly procedure is implemented in C in the “dekupl-mergeTags” binary. By default the assembly process stops after assembling sequences with 15nt overlaps.
