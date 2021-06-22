@@ -341,7 +341,8 @@ if __name__ == '__main__':
     threads,lowdepth,cutoff,support,nb_kmers,distance=int(threads),int(lowdepth),float(cutoff),int(support),int(nb_kmers),int(distance)
     samid=kmerfile_T.split('/')[-1].replace('.txt.gz','')
     outdir=os.path.dirname(os.path.dirname(kmerfile_T))
-    #os.system('cd mergeTags;make')
+    os.system('cd ../mergeTags;make')
+    os.system('mv ../mergeTags/mergeTags ./')
     ################# extract case specific kmers #######################
     nb_kmers_eachthread=10000000
     fpath='%s/case_specific_kmers/shared_kmers_count'%outdir
