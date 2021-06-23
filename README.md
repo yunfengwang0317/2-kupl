@@ -30,6 +30,7 @@ Users can manually download the scripts or use the command line as follows.
 `git clone https://github.com/yunfengwang0317/2-kupl.git`
     
 Make sure you run 2-kupl within the script folder.
+Please add the dependencies including Jellyfish, cutadapt, GSNAP, CAP3 and BBDUK to your environment variables. 
     
 ## Basic usage
 ```
